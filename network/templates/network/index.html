@@ -1,5 +1,39 @@
 {% extends "network/layout.html" %}
 
 {% block body %}
-    TODO
+<h1 class="m-3">All Posts</h1>
+
+{% if request.user.is_authenticated %}
+<section class="m-2 p-3 border">
+    <h3>New Post</h3>
+    <form method="post">
+        {% csrf_token %}
+        <div class="mb-3">
+        <label class="form-label">Title:</label><br>
+        {{ postForm.title }}
+        </div>
+
+        <div class="mb-3">
+        <label class="form-label">Content:</label><br>
+        {{ postForm.content }}
+        </div>
+        <button type="submit" class="btn btn-primary">Post</button>
+    </form>
+</section>
+{% endif %}
+
+
+<main class="m-1 p-3">
+    <div class="container-fluid">
+        {% for post in all_posts %}
+            <div class="mb-3 p-3 border">
+                <h3>{{ post.title }}</h3>
+                <p>by {{ post.author.username }}</p>
+                <p>{{ post.content }}</p>
+                <p class="text-muted">{{ post.timestamp }}</p>
+            </div>
+        {% endfor %}
+    </div>
+</main>
+
 {% endblock %}
