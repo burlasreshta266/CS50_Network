@@ -2,6 +2,7 @@ from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect
 from django.shortcuts import render, redirect
+from django.core.paginator import Paginator
 from django.urls import reverse
 from .models import User, Post, Follow, Like
 from .forms import createPostForm
@@ -9,6 +10,7 @@ from .forms import createPostForm
 
 def index(request):
     all_posts = Post.objects.all().order_by('-timestamp')
+    p = Paginator(all_posts, 10)
 
     if request.method=='POST':
         form = createPostForm(request.POST)
@@ -20,10 +22,22 @@ def index(request):
             form = createPostForm()
         return redirect('index')
     else:
+        page_number = request.GET.get('page')
+        page_obj = p.get_page(page_number)
         return render(request, "network/index.html", {
-            'all_posts' : all_posts,
+            'page_obj' : page_obj,
             'postForm' : createPostForm()
         })
+    
+
+def post_list(request):
+    all_posts = Post.objects.all().order_by('-timestamp')
+    p = Paginator(all_posts, 10)
+    n = request.GET.get('page')
+    pages = p.page(n).object_list()
+    return render(request, 'network/pages.html', {
+        'pages' : pages
+    })
 
 
 def login_view(request):
