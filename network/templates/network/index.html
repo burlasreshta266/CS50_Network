@@ -30,6 +30,16 @@
                 <h3>{{ post.title }}</h3>
                 <p>by {{ post.author.username }}</p>
                 <p>{{ post.content }}</p>
+
+                {% if request.user.is_authenticated %}
+                    <div>
+                        <button id="heart-{{ post.id }}" onclick="likeHandler(this)" data-id="{{ post.id }}" class="btn btn-link">❤️</button>
+                        <span id="count-{{ post.id }}">{{ post.likes.count }}</span>
+                    </div>
+                {% else %}
+                <p>❤️ {{ post.likes.count }}</p>
+                {% endif %}
+
                 <p class="text-muted">{{ post.timestamp }}</p>
             </div>
         {% endfor %}
@@ -58,6 +68,23 @@
 
     </ul>
     </nav>
+
+<script>
+
+function likeHandler(button){
+    id = button.getAttribute('data-id')
+
+    fetch(`/like/${id}`, {
+        method : 'POST',
+        headers : {'X-CSRFToken': '{{ csrf_token }}'}
+    }).then(response => response.json())
+    .then(result => {
+        document.querySelector(`#count-${id}`).innerHTML = result.like_count;
+        const heart = document.querySelector(`#heart-${id}`);
+    })
+}
+
+</script>
 </main>
 
 {% endblock %}

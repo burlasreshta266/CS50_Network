@@ -1,7 +1,9 @@
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
-from django.http import HttpResponse, HttpResponseRedirect
+from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
 from django.shortcuts import render, redirect
+from django.contrib.auth.decorators import login_required
+from django.views.decorators.http import require_POST
 from django.core.paginator import Paginator
 from django.urls import reverse
 from .models import User, Post, Follow, Like
@@ -58,6 +60,22 @@ def login_view(request):
             })
     else:
         return render(request, "network/login.html")
+
+@login_required
+@require_POST
+def like_post(request, post_id):
+    post = Post.objects.get(id=post_id)
+
+    if post.likes.filter(liked_by=request.user).exists():
+        Like.objects.filter(liked_by=request.user, liked_post=post).delete()
+        is_like = False
+    else:
+        Like.objects.create(liked_by=request.user, liked_post=post)
+        is_like = True
+
+    return JsonResponse({
+        'like_count' : post.likes.count(),
+    })
 
 
 def logout_view(request):
