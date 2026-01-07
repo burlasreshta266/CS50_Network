@@ -42,7 +42,20 @@
                     <p>by <b>{{ post.author.username }}</b></p>
                 {% endif %}
 
-                <p class="mt-3">{{ post.content }}</p>
+                {% if request.user.is_authenticated and post.author == request.user %}
+                <div id="edit-btn-sec-{{ post.id }}" class="mt-1">
+                    <button onclick="editView(this)" data-id="{{ post.id }}" class="btn btn-link">Edit</button>
+                    <p id="post-content-{{ post.id }}" class="mt-1">{{ post.content }}</p>
+                </div>  
+                <div id="edit-text-sec-{{ post.id }}" class="d-none mb-2">
+                    <label for="edited_content">Edit content:</label>
+                    <input id="edited_content-{{ post.id }}" value="{{ post.content }}" type="text" class="w-100" name="edited_content">
+                    <button onclick="editHandler(this)" data-id="{{ post.id }}" class="btn btn-sm btn-primary mt-2">Edit</button>
+                </div>
+                {% else %}
+                    <p class="mt-3">{{ post.content }}</p>
+                {% endif %}
+
 
                 {% if request.user.is_authenticated %}
                     <div>
@@ -111,7 +124,7 @@ function followHandler(button){
 
     fetch(`/follow/${username}`, {
         method : 'POST',
-        headers : {'X-CSRFToken': '{{ csrf_token }}'}
+        headers : {'X-CSRFToken': '{{ csrf_token }}'}, 
     }).then(response => response.json())
     .then(result => {
         const buttons = document.querySelectorAll(`.follow-${username}`);        
@@ -123,6 +136,31 @@ function followHandler(button){
             }
         });
     });
+}
+
+function editView(button){
+    id = button.getAttribute('data-id');
+    document.getElementById(`edit-btn-sec-${id}`).classList.add('d-none');
+    document.getElementById(`edit-text-sec-${id}`).classList.remove('d-none');
+}
+
+function editHandler(button){
+    id = button.getAttribute('data-id');
+    const content = document.getElementById(`edited_content-${id}`).value;
+
+    fetch(`/edit_post/${id}`, {
+        method : 'POST',
+        headers : {'X-CSRFToken': '{{ csrf_token }}'},
+        body: JSON.stringify({
+            edited_content: content
+        })
+    }).then(response => response.json())
+    .then(result => {
+        document.getElementById(`post-content-${id}`).innerHTML = result.new_content;
+        document.getElementById(`edit-text-sec-${id}`).classList.add('d-none');
+        document.getElementById(`edit-btn-sec-${id}`).classList.remove('d-none');
+    });
+
 }
 
 </script>

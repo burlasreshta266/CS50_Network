@@ -1,3 +1,4 @@
+import json
 from django.contrib.auth import authenticate, login, logout
 from django.db import IntegrityError
 from django.http import HttpResponse, HttpResponseRedirect, JsonResponse
@@ -96,6 +97,17 @@ def following_page(request):
     return render(request, "network/following.html", {
         'page_obj' : page_obj,
     })
+
+
+@login_required
+def edit_post(request, id):
+    if request.method=='POST':
+        data = json.loads(request.body)
+        new_content = data.get("edited_content")
+        post = Post.objects.get(id=id)
+        post.content = new_content
+        post.save()
+        return JsonResponse({ 'new_content' : new_content })
 
 
 @login_required
