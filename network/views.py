@@ -26,21 +26,16 @@ def index(request):
     else:
         page_number = request.GET.get('page')
         page_obj = p.get_page(page_number)
+        if request.user.is_authenticated:
+            for post in page_obj:
+                post.is_liked = post.likes.filter(liked_by=request.user).exists()
+                post.is_following = post.author.followers.filter(follower=request.user).exists()
+
         return render(request, "network/index.html", {
             'page_obj' : page_obj,
             'postForm' : createPostForm()
         })
     
-
-def post_list(request):
-    all_posts = Post.objects.all().order_by('-timestamp')
-    p = Paginator(all_posts, 10)
-    n = request.GET.get('page')
-    pages = p.page(n).object_list()
-    return render(request, 'network/pages.html', {
-        'pages' : pages
-    })
-
 
 def login_view(request):
     if request.method == "POST":
@@ -61,6 +56,48 @@ def login_view(request):
     else:
         return render(request, "network/login.html")
 
+
+def profile(request, id):
+    try:
+        user = User.objects.get(id=id)
+    except:
+        return render(request, "network/error.html")
+    all_posts = Post.objects.filter(author=user).order_by('timestamp')
+    username = user.username
+    followers = user.followers.count()
+    following = user.following.count()
+    p = Paginator(all_posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = p.get_page(page_number)
+    if request.user.is_authenticated:
+        for post in page_obj:
+            post.is_liked = post.likes.filter(liked_by=request.user).exists()
+            post.is_following = post.author.followers.filter(follower=request.user).exists()
+
+    return render(request, "network/profile.html", {
+        'page_obj' : page_obj,
+        'username' : username,
+        'following_count' : following,
+        'followers_count' : followers
+    })
+
+
+@login_required
+def following_page(request):
+    all_posts = Post.objects.filter(author__followers__follower=request.user).order_by("-timestamp")
+    p = Paginator(all_posts, 10)
+    page_number = request.GET.get('page')
+    page_obj = p.get_page(page_number)
+    if request.user.is_authenticated:
+        for post in page_obj:
+            post.is_liked = post.likes.filter(liked_by=request.user).exists()
+            post.is_following = post.author.followers.filter(follower=request.user).exists()
+
+    return render(request, "network/following.html", {
+        'page_obj' : page_obj,
+    })
+
+
 @login_required
 @require_POST
 def like_post(request, post_id):
@@ -75,7 +112,23 @@ def like_post(request, post_id):
 
     return JsonResponse({
         'like_count' : post.likes.count(),
+        'is_like' : is_like,
     })
+
+
+@login_required
+@require_POST
+def follow_user(request, username):
+    following = User.objects.get(username=username)
+    follower = request.user
+    follow = Follow.objects.filter(follower=follower, following=following)
+    if follow.exists():
+        follow.delete()
+        is_following = False
+    else:
+        Follow.objects.create(follower=follower, following=following)
+        is_following = True
+    return JsonResponse({ 'is_following':is_following })    
 
 
 def logout_view(request):
